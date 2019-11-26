@@ -62,15 +62,8 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
-### OSX ###
-# General
+# CLion
+.idea
+cmake-build-debug
+*.pdf
 
-# Icon must end with two \r
-
-# Thumbnails
-
-# Files that might appear in the root of a volume
-
-# Directories potentially created on remote AFP share
-
-# End of https://www.gitignore.io/api/osx,macos
