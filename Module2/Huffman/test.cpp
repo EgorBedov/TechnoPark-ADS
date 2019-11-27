@@ -4,12 +4,11 @@
 #include <vector>
 #include <unistd.h>
 
-
 #include "Huffman.h"
 
-#define ORIGINAL_FILE "/files/original_file"
-#define COMPRESSED_FILE "/files/compressed_file"
-#define DECOMPRESSED_FILE "/files/decompressed_file"
+#define ORIGINAL_FILE "files/original_file"
+#define COMPRESSED_FILE "files/compressed_file"
+#define DECOMPRESSED_FILE "files/decompressed_file"
 
 int main() {
     /// Check for files existence
@@ -30,7 +29,7 @@ int main() {
     /// Read char by char into vector
     char temp_char;
     byte temp_byte;
-    while ( !inf.get(temp_char) ) {
+    while ( inf.get(temp_char) ) {
         temp_byte = byte(temp_char);
         temp_vec_output.Write( temp_byte );  // заполняю тот вектор, который имеет метод write
     }
@@ -39,22 +38,23 @@ int main() {
     /// Do main work
     // vec_input пустой, а нам необходимо из него читать
     // поэтому просто поменяю местами вектора
-    std::vector<byte> vec_in = temp_vec_out;    // копируем original в новый вектор
+    std::vector<byte> vec_in = temp_vec_output.vec;    // копируем original в новый вектор
     VectorInputStream vec_input( vec_in );
     std::vector<byte> vec_out;      // пустой вектор для записи compressed
     VectorOutputStream vec_output( vec_out );
+    printf("---ENCODING---\n");
     Encode(vec_input, vec_output);
 
     /// Write result of compression to its file
     std::ofstream outf;
-    outf.open(COMPRESSED_FILE, std::ofstream::in);   // ios::binary?
+    outf.open(COMPRESSED_FILE, std::ofstream::in | std::ofstream::trunc);   // ios::binary?
 
     // опять же, необходимо прочитать из vec_output,
     // у которого нет Read, поэтому снова меняем их местами
     std::vector<byte> temp_vec_in = vec_output.vec;     // копируем compressed в новый вектор
     VectorInputStream temp_vec_input(temp_vec_in);
     while ( temp_vec_input.Read(temp_byte) ) {
-        outf << int(temp_byte);     // TODO: not sure here
+        outf << temp_byte;     // TODO: not sure here
     }
     outf.close();
 
@@ -66,7 +66,7 @@ int main() {
     temp_vec_output.vec.clear();
 
     /// Read char by char into vector
-    while ( !inf.get(temp_char) ) {
+    while ( inf.get(temp_char) ) {
         temp_byte = byte(temp_char);
         temp_vec_output.Write( temp_byte );
     }
@@ -74,15 +74,18 @@ int main() {
 
     /// Prepare arguments for Decode()
     vec_input.vec.clear();
-    vec_input.vec = temp_vec_out;
+    vec_input.vec = temp_vec_output.vec;
+    vec_input.pos = 0;
     vec_output.vec.clear();
+    printf("\n\n---DECODING---\n");
     Decode(vec_input, vec_output);
 
     /// Write result of compression to its file
-    outf.open(DECOMPRESSED_FILE, std::ofstream::in);
+    outf.open(DECOMPRESSED_FILE, std::ofstream::in | std::ofstream::trunc | std::ofstream::binary);
 
     temp_vec_input.vec.clear();             // Очищаем вектор из которого будем читать
     temp_vec_input.vec = vec_output.vec;    // Копируем в него наш результат
+    temp_vec_input.pos = 0;
     while ( temp_vec_input.Read(temp_byte) ) {
         outf << char(temp_byte);
     }
@@ -91,3 +94,5 @@ int main() {
     /// Check if files are the same
     // assert();
 }
+
+// TODO: too many vectors
