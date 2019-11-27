@@ -47,7 +47,7 @@ public:
 
 class BitOutput {
 public:
-    explicit BitOutput(IOutputStream& _stream) : stream(_stream), buf(0), bit_count(0) {}
+    explicit BitOutput(VectorOutputStream& _stream) : stream(_stream), buf(0), bit_count(0) {}
 
     void write_bit(byte bit) {
         buf |= (bit & 1) << (7 - (bit_count++));
@@ -69,14 +69,14 @@ public:
     }
     friend Huffman;
 private:
-    IOutputStream& stream;
+    VectorOutputStream& stream;
     byte buf;
     int bit_count;
 };
 
 class BitInput {
 public:
-    explicit BitInput(IInputStream &_input) : stream(_input), buf(0), bit_pos(8) {}
+    explicit BitInput(VectorInputStream &_input) : stream(_input), buf(0), bit_pos(8) {}
 
     bool read_bit(byte &bit) {
         if (bit_pos == 8) {
@@ -104,7 +104,7 @@ public:
 
     friend Huffman;
 private:
-    IInputStream &stream;
+    VectorInputStream &stream;
     byte buf;
     int bit_pos;
 };
@@ -114,7 +114,7 @@ void Decode(IInputStream& compressed, IOutputStream& original);
 
 class Huffman {
 public:
-    Huffman(IInputStream &_stream_in, IOutputStream& _stream_out)
+    Huffman(VectorInputStream &_stream_in, VectorOutputStream& _stream_out)
       : amount_of_symbols(0),
         counter(nullptr),
         unused_bits(0),
@@ -130,8 +130,12 @@ public:
         TreeNode *left;
         TreeNode *right;
 
-        explicit TreeNode(char _letter, int8_t _code, int _frequency = 0, TreeNode *_left = nullptr, TreeNode *_right = nullptr) :
-            letter(_letter),
+        explicit TreeNode(char _letter,
+                          int8_t _code,
+                          int _frequency = 0,
+                          TreeNode *_left = nullptr,
+                          TreeNode *_right = nullptr)
+          : letter(_letter),
             ASCII_code(_code),
             frequency(_frequency),
             left(_left),
@@ -139,15 +143,15 @@ public:
     };
 
     void Encode() {
-        AnalyzeInput();  // Считаем кол-во, частоту символов
+        AnalyzeInput();                     // Считаем кол-во, частоту символов
 
-        BuildTree();  // Создаём дерево
+        BuildTree();                        // Создаём дерево
 
-        BuildTable();  // Создаём таблицу с новыми кодами - DFS
+        BuildTable();                       // Создаём таблицу с новыми кодами - DFS
 
-        unused_bits = CountUnusedBits();  // Считаем кол-во неиспользованных бит
+        unused_bits = CountUnusedBits();    // Считаем кол-во неиспользованных бит
 
-        EncodeTree();    // Кодируем само дерево Хаффмана
+        EncodeTree();                       // Кодируем само дерево Хаффмана
 
         WritePayload();
     }
@@ -210,8 +214,8 @@ public:
 
         for ( size_t iii = rate_table.size() - 1; rate_table.size() != 1; iii-- ) { // Итерируем с конца
             auto *new_node = new Huffman::TreeNode(     // Соединяем два последних элемента в один
-                    -1,                         // Новый узел не несёт в себе никакой буквы
-                    0,                              // нулевой аски-код (опасно?)
+                    -1,                                 // Новый узел не несёт в себе никакой буквы
+                    0,                                  // нулевой аски-код (опасно?)
                     rate_table[iii]->frequency + rate_table[iii - 1]->frequency,
                     rate_table[iii],                    // Левый ребёнок
                     rate_table[iii - 1]);               // Правый ребёнок
@@ -292,7 +296,7 @@ public:
         printf("\n");
     }
 
-    TreeNode* DecodeTree() {    // should i check for amount of symbols here? - maybe no
+    TreeNode* DecodeTree() {
         byte bit;
         bit_input.read_bit(bit);
         if ( int(bit) == 0 ) {
