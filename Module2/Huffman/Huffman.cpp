@@ -16,9 +16,6 @@ static void copyStream(IInputStream &input, IOutputStream &output) {
 }
 
 void Encode(IInputStream &original, IOutputStream &compressed) {
-    // maybe we can calculate necessity to compress message at all
-//    copyStream(original, compressed);
-
     Huffman hf(original, compressed);
 
     hf.Encode();

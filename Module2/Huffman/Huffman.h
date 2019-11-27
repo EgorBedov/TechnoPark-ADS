@@ -38,7 +38,6 @@ public:
 class VectorOutputStream : public IOutputStream {
 public:
     explicit VectorOutputStream(std::vector<byte> &vec) : vec(vec) {}
-    // TODO: написать две функции write_bit и write_byte
     void Write(byte value) override {
         vec.push_back(value);
     }
@@ -80,10 +79,10 @@ public:
     explicit BitInput(IInputStream &_input) : stream(_input), buf(0), bit_pos(8) {}
 
     bool read_bit(byte &bit) {
-        if ( bit_pos == 8 ) {
+        if (bit_pos == 8) {
             bool res = stream.Read(buf);
             bit_pos = 0;
-            if ( !res )
+            if (!res)
                 return false;
         }
         bit = (buf >> (7 - (bit_pos++))) & 1;
@@ -93,25 +92,24 @@ public:
     char read_byte() {
         auto bits = new char(CHAR_BIT);
         byte bit;
-        for ( size_t iii = 0; iii < CHAR_BIT; ++iii ) {
+        for (size_t iii = 0; iii < CHAR_BIT; ++iii) {
             read_bit(bit);
             bits[iii] = int(bit);
         }
 
         char letter = std::stoi(bits, nullptr, 2);
-        delete(bits);
+        delete (bits);
         return letter;
     }
 
     friend Huffman;
 private:
-    IInputStream& stream;
+    IInputStream &stream;
     byte buf;
     int bit_pos;
-
 };
 
-void Encode(IInputStream &original, IOutputStream &compressed);
+void Encode(IInputStream& original, IOutputStream& compressed);
 void Decode(IInputStream& compressed, IOutputStream& original);
 
 class Huffman {
@@ -181,6 +179,7 @@ public:
             }
         }
 
+        printf("Количество уникальных букв: %hhd\n", amount_of_symbols);
 //        /// Запишем кол-во элементов
 //        bit_output.stream.Write(amount_of_symbols);
     }
@@ -199,12 +198,22 @@ public:
         /// Сортируем таблицу в порядке убывания
         std::sort(rate_table.begin(), rate_table.end(), std::greater<int>());
 
+        puts("Таблица частот");
+        for ( auto & iii : rate_table ) {
+            printf("%c\t", iii->letter);
+        }
+        printf("\n");
+        for ( auto & iii : rate_table ) {
+            printf("%d\t", iii->frequency);
+        }
+        printf("\n");
+
         for ( size_t iii = rate_table.size() - 1; rate_table.size() != 1; iii-- ) { // Итерируем с конца
             auto *new_node = new Huffman::TreeNode(     // Соединяем два последних элемента в один
                     -1,                         // Новый узел не несёт в себе никакой буквы
-                    0,                           // нулевой аски-код (опасно?)
+                    0,                              // нулевой аски-код (опасно?)
                     rate_table[iii]->frequency + rate_table[iii - 1]->frequency,
-                    rate_table[iii],                     // Левый ребёнок
+                    rate_table[iii],                    // Левый ребёнок
                     rate_table[iii - 1]);               // Правый ребёнок
             rate_table.pop_back();
             rate_table.pop_back();
@@ -246,6 +255,7 @@ public:
         // Each letter carries itself (8 bits) and zero-bit (1 bit)
         // Empty nodes are represented by ( letters - 1 )
         int8_t tree_bits = amount_of_symbols * ( 8 + 1 ) + ( amount_of_symbols - 1 );
+        printf("Длина закодированного дерева: %hhd бит\n", tree_bits);
 
         // To count length of payload we need to
         // multiply frequency of each letter by bit-length of its new code
@@ -256,27 +266,33 @@ public:
                     *
                     new_codes[rate_table[iii]->letter].size() );
         }
+        printf("Длина закодированного сообщения: %lld бит\n", payload_bits);
 
         bits = 8 - ( tree_bits + payload_bits ) % 8;
 
         /// Запишем кол-во неиспользованных бит
         bit_output.stream.Write(bits);
+
+        printf("Количество неиспользованных бит: %hhd\n", bits);
         return bits;
     }
 
-    // TODO: prettify arguments
     void EncodeTree(TreeNode *node = rate_table[0]) {
+        printf("\nЗакодированное дерево\n");
         if (node->left && node->right) {
             bit_output.write_bit(0);
+            printf("%d", 0);
             EncodeTree(node->left);
             EncodeTree(node->right);
         } else {
             bit_output.write_bit(1);
             bit_output.write_char(node->letter);
+            printf("%c", node->letter);
         }
+        printf("\n");
     }
 
-    TreeNode *DecodeTree() {    // should i check for amount of symbols here? - maybe no
+    TreeNode* DecodeTree() {    // should i check for amount of symbols here? - maybe no
         byte bit;
         bit_input.read_bit(bit);
         if ( int(bit) == 0 ) {
@@ -291,10 +307,21 @@ public:
     }
 
     void WritePayload() {
-        //////////////////HERE//////////////////
+        printf("\nЗакодированное сообщение\n");
+        // TODO: Read original once again and look up new_codes for every letter
+        // bit_input.stream.pos = 0;       // Move index of vector in its beginning
+        byte value;
+        while ( bit_input.stream.Read(value) ) {
+            for ( size_t iii = 0; iii < new_codes[value].size(); ++iii ) {
+                bit_output.write_bit(int(new_codes[value][iii])); // TODO: not sure here
+                printf("%d", int(new_codes[value][iii]));
+            }
+        }
+        bit_output.flush();
+        printf("\n");
     }
 
-    void Decode(/*VectorInputStream &input, BitInput bit_input*/) {
+    void Decode() {
         /// Read header
         byte bit = 0;
 //        bit_input.stream.Read(bit);
@@ -302,25 +329,23 @@ public:
         bit_input.stream.Read(bit);
         unused_bits = bit;
 
-        auto root = DecodeTree();
+        auto root = DecodeTree();   // Раскодировали дерево
+
+        TreeNode* tmp = root;       // Скопировали корень
 
         /// Decode message
-        for ( size_t iii = 0; iii < input.vec.size() * 8 - unused_bits; ++iii ) {
-            assert( bit_input.read_bit( bit ) );
+        int8_t tree_bits = amount_of_symbols * ( 8 + 1 ) + ( amount_of_symbols - 1 );
+        // TODO: i need to know how much to read but can't get the
+        for ( size_t iii = 8 + tree_bits; iii < bit_input.stream.vec.size() * 8 - unused_bits; ++iii ) {
+            assert(bit_input.read_bit(bit));
 
-            if ( int(bit) == 0 ) {
-                root = root->right = new TreeNode(-1, 0, nullptr, nullptr);
+            tmp = (int(bit) == 0 ? tmp->right : tmp->left);
+            if (!(tmp->left) && !(tmp->right)) {
+                bit_output.write_char(tmp->letter);
+                tmp = root;
             }
-
-            std::cout << (int)bit << " ";
         }
-
-
-
     }
-
-//    void
-
 private:
     std::map<char, std::vector<bool> > new_codes;
     int8_t amount_of_symbols;
@@ -345,3 +370,5 @@ private:
 //  we can write it with just 3 bits instead of 8!
 
 // TODO: consider using C++11 std::bitset
+
+// TODO: calculate necessity to compress
