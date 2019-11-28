@@ -1,5 +1,3 @@
-
-
 #include "Huffman.h"
 
 static void copyStream(IInputStream &input, VectorInputStream &output) {
@@ -9,8 +7,7 @@ static void copyStream(IInputStream &input, VectorInputStream &output) {
 }
 
 void Encode(IInputStream &original, IOutputStream &compressed) {
-    std::vector<byte> vec;
-    VectorInputStream original_vector(vec);
+    VectorInputStream original_vector;
 
     copyStream(original, original_vector);
 
@@ -19,13 +16,11 @@ void Encode(IInputStream &original, IOutputStream &compressed) {
 }
 
 void Decode(IInputStream& compressed, IOutputStream& original) {
-    std::vector<byte> vec;
-    VectorInputStream compressed_vector(vec);
+    VectorInputStream compressed_vector;
 
     copyStream(compressed, compressed_vector);
 
     Huffman hf(compressed_vector, original);
-
     hf.Decode();
 }
 
