@@ -1,142 +1,201 @@
+#include <cassert>
 #include <iostream>
+#include <functional>
 #include <sstream>
 #include <queue>
 
-
-// TODO: consider making class BaseNode which BSTNode and DTNode can inherit from
-// that way you can make WidestLayer work with BaseNode while working with those two (upcast)
-
-
-bool more(const int left, const int right) {
-    return left > right;
-}
-
-namespace BST {
+template <typename T>
+class BST {
 struct Node {
-    int data;
-    Node* left;
-    Node* right;
+    Node() : left_(nullptr), right_(nullptr) {}
+    explicit Node(const T& _key)
+      : key_(_key),
+        left_(nullptr),
+        right_(nullptr) {};
 
-    explicit Node(int _data) : data(_data), left(nullptr), right(nullptr) {}
-    ~Node() {    /// Valgrind proves that this thing actually clears everything
-        if ( left )     delete left;
-        if ( right )    delete right;
-    }
+    T key_;
+    Node* left_;
+    Node* right_;
 };
+public:
+    explicit BST(std::function<bool(const T &l, const T &r)> _comp) : comp_(_comp), root_(nullptr) {};
+    ~BST() { Destruct(); }
 
-void Insert(Node *&root, const int data, bool (*comparison_func)(const int left, const int right)) {
-    auto new_node = new Node(data);
-    Node *node = root;
-    Node *prev = nullptr;
+    void Insert(const T& key) {
+        auto new_node = new Node(key);
 
-    /// Check if tree is empty
-    if (!root) {
-        root = new_node;
-        return;
+        /// Check if tree is empty
+        if ( !root_ ) {
+            root_ = new_node;
+            return;
+        }
+
+        Node* node = root_;
+        Node* prev = nullptr;
+
+        /// Go to its leaf
+        while ( node ) {
+            prev = node;
+            node = (comp_(node->key_, key) ? node->left_ : node->right_);
+        }
+
+        /// Replace empty leaf
+        (comp_(prev->key_, key) ? prev->left_ : prev->right_) = new_node;
     }
 
-    /// Head to its leaf
-    while (node) {
-        prev = node;
-        node = (comparison_func(node->data, data) ? node->left : node->right);
-    }
+    int WidestLayer()  {
+        Node* node = root_;
+        int result = 0;
+        /// Empty tree case
+        if ( !node )
+            return result;
 
-    /// Replace empty leaf
-    (comparison_func(prev->data, data) ? prev->left : prev->right) = new_node;
-}
-} // namespace
+        /// Create queue with root in it
+        std::queue<Node*> q;
+        q.push(node);
 
-namespace DT {  // Treap - Декартово дерево
-struct Node {
-    int data;
-    int priority;
-    Node* left;
-    Node* right;
+        /// Pop and push nodes layer by layer
+        while ( !q.empty() ) {
+            int count = q.size();
+            result = std::max(count, result);
 
-    explicit Node(int _data, int _priority) :
-        data(_data),
-        priority(_priority),
-        left(nullptr),
-        right(nullptr) {}
-    ~Node() {    /// Valgrind proves that this thing actually clears everything
-        if ( left )     delete left;
-        if ( right )    delete right;
-    }
-};
-// Разрезание декартового дерева по ключу.
-void Split( Node* currentNode, int data, Node*& left, Node*& right ) {
-    if( !currentNode ) {
-        left = nullptr;
-        right = nullptr;
-    } else if( currentNode->data <= data ) {
-        Split( currentNode->right, data, currentNode->right, right );
-        left = currentNode;
-    } else {
-        Split( currentNode->left, data, left, currentNode->left );
-        right = currentNode;
-    }
-}
-void Insert(Node *&node, const int data, const int priority, bool (*comparison_func)(const int left, const int right)) {
-    while ( node ) {
-        if ( node->priority > priority ) {
-            if ( node->left ) {
-                if ( node->left->priority > priority )
-                    node = node->left;
-            } else if ( node->right ) {
-                if ( node->right->priority > priority )
-                    node = node->right;
+            while ( count-- ) {
+                node = q.front();
+                if ( node->left_ )
+                    q.push(node->left_);
+                if ( node->right_ )
+                    q.push(node->right_);
+                q.pop();
             }
         }
-    }
-    Split(node, data, nullptr, nullptr);
-}
-}
-
-template <typename Node>
-int WidestLayer(const Node *node) {
-    int result = 0;
-
-    /// Empty tree case
-    if ( !node )
         return result;
+    }
 
-    /// Create queue with root in it
-    std::queue<const Node*> q;
-    q.push(node);
+private:
+    void Destruct() {
+        /// Using BFS for destruction
+        std::queue<Node*> q;
+        q.push(root_);
 
-    /// Pop and push nodes layer by layer
-    while ( !q.empty() ) {
-        int count = q.size();
-        result = std::max(count, result);
-
-        while ( count-- ) {
+        Node* node = nullptr;
+        while ( !q.empty() ) {
             node = q.front();
-            if ( node->left )
-                q.push(node->left);
-            if ( node->right )
-                q.push(node->right);
+            if ( node->left_ )
+                q.push(node->left_);
+            if ( node->right_ )
+                q.push(node->right_);
+            delete node;
             q.pop();
         }
     }
-    return result;
-}
+
+    std::function<bool(const T &l, const T &r)> comp_;
+    Node* root_;
+};
+
+template <typename T>
+class DT {
+struct Node {
+    Node() : left_(nullptr), right_(nullptr) {}
+    Node(const T& _key, int _priority)
+      : key_(_key),
+        priority_(_priority),
+        left_(nullptr),
+        right_(nullptr) {};
+
+    ~Node() {
+        if ( left_ ) delete left_;
+        if ( right_ ) delete right_;
+    }
+
+    T key_;
+    int priority_;
+    Node* left_;
+    Node* right_;
+};
+public:
+    explicit DT(std::function<bool(const T &l, const T &r)> _comp) : comp_(_comp), root_(nullptr) {};
+    ~DT() { delete root_; }
+
+    void Insert(const T& key, const int priority) {
+        auto new_node = new Node(key, priority);
+        Insert_(root_, new_node);
+    }
+    int WidestLayer()  {
+        Node* node = root_;
+        int result = 0;
+        /// Empty tree case
+        if ( !node )
+            return result;
+
+        /// Create queue with root in it
+        std::queue<Node*> q;
+        q.push(node);
+
+        /// Pop and push nodes layer by layer
+        while ( !q.empty() ) {
+            int count = q.size();
+            result = std::max(count, result);
+
+            while ( count-- ) {
+                node = q.front();
+                if ( node->left_ )
+                    q.push(node->left_);
+                if ( node->right_ )
+                    q.push(node->right_);
+                q.pop();
+            }
+        }
+        return result;
+    }
+
+private:
+    /// Разрезание декартового дерева по ключу.
+    void Split(Node* currentNode, const T& key, Node*& left, Node*& right) {
+        if ( !currentNode ) {
+            left = nullptr;
+            right = nullptr;
+        } else if ( comp_(currentNode->key_, key) ) {
+            Split( currentNode->left_, key, left, currentNode->left_ );
+            right = currentNode;
+        } else {
+            Split( currentNode->right_, key, currentNode->right_, right );
+            left = currentNode;
+        }
+    }
+
+    void Insert_(Node*& node, Node* new_node) {
+        if ( !node ) node = new_node;
+        else if ( comp_(new_node->priority_, node->priority_) ) {
+            Split(node, new_node->key_, new_node->left_, new_node->right_ );
+            node = new_node;
+        } else {
+            Insert_( comp_(node->key_, new_node->key_) ? node->left_ : node->right_, new_node);
+        }
+    }
+
+    std::function<bool(const T &l, const T &r)> comp_;
+    Node* root_;
+};
 
 void run(std::istream &input, std::ostream &output) {
     int amount = 0;
     input >> amount;
 
-    BST::Node* BST_root = nullptr;
-    DT::Node* DT_root = nullptr;
+    std::function<bool(const int& l, const int& r)> comp = [](const int& l, const int& r) { return l > r; };
 
-    int data = 0;
+    BST<int> bst(comp);
+    DT<int> dt(comp);
+
+    int key = 0;
     int priority = 0;
     for ( size_t iii = 0; iii < amount; ++iii ) {
-        input >> data >> priority;
-        BST::Insert(BST_root, data, more);
-        DT::Insert(DT_root, data, priority, more);
+        input >> key >> priority;
+        bst.Insert(key);
+        dt.Insert(key, priority);
     }
 
-    output << WidestLayer(BST_root) - WidestLayer(DT_root);
+    output << dt.WidestLayer() - bst.WidestLayer();
 }
 
 void testLogic() {
@@ -158,7 +217,7 @@ void testLogic() {
 
         run(input, output);
 
-        assert(output.str() == "2");
+        assert(output.str() == "1");
     }
     { // 2 Условие из задачи
         std::stringstream input;
@@ -178,8 +237,9 @@ void testLogic() {
 
         run(input, output);
 
-        assert(output.str() == "2");
+        assert(output.str() == "1" && "Wrong answer!");
     }
+    std::cout << "OK" << std::endl;
 }
 
 int main() {
@@ -189,4 +249,3 @@ int main() {
 
     return 0;
 }
-
