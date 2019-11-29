@@ -261,15 +261,15 @@ public:
             BuildTable(node->right);
         }
         if ( !(node->left) && !(node->right) ) {
-            new_codes.insert(std::pair<byte, std::vector<bool> >(node->letter, std::vector<bool>(code)));
+            new_codes.emplace(node->letter, std::vector<bool>(code));
         }
         if ( !code.empty() )
             code.pop_back();
     }
 
-    int8_t CountUnusedBits() {
+    byte CountUnusedBits() {
         printf("\nДлина исходного сообщения: %lu бит", bit_input.stream.vec.size() * 8);
-        int8_t bits;
+        byte bits;
         // Each letter carries itself (8 bits) and zero-bit (1 bit)
         // Empty nodes are represented by ( letters - 1 )
         int16_t tree_bits = amount_of_symbols * ( 8 + 1 ) + ( amount_of_symbols - 1 );
@@ -369,8 +369,8 @@ public:
 
 private:
     std::map<byte, std::vector<bool> > new_codes;
-    int8_t amount_of_symbols;
-    int8_t unused_bits;
+    byte amount_of_symbols;
+    byte unused_bits;
     std::vector<std::shared_ptr<TreeNode> > rate_table;
     std::vector<std::shared_ptr<TreeNode> > backup_rate_table;
     size_t* counter;

@@ -6,15 +6,20 @@
 
 #include "Huffman.h"
 
+/*
 #define ORIGINAL_FILE "files/original_file"
 #define COMPRESSED_FILE "files/compressed_file"
 #define DECOMPRESSED_FILE "files/decompressed_file"
+*/
+
+#define ORIGINAL_FILE "files/WaP/original"
+#define COMPRESSED_FILE "files/WaP/compressed"
+#define DECOMPRESSED_FILE "files/WaP/decompressed"
 
 #include <algorithm>
 #include <map>
 #include <memory>
 #include <utility>
-
 
 #define ASCII_LENGTH 256
 #define BITS_IN_BYTE 8
@@ -22,7 +27,9 @@ typedef unsigned char byte;
 
 class VectorInputStream : public IInputStream {
 public:
-    explicit VectorInputStream() : pos(0) {}
+    explicit VectorInputStream() : pos(0) {
+        printf("Max size of vector<byte> in VectorIS: %lu\n", vec.max_size());
+    }
 
     bool Read(byte& value) override {
         if (pos < vec.size()) {
@@ -41,7 +48,9 @@ public:
 
 class VectorOutputStream : public IOutputStream {
 public:
-    explicit VectorOutputStream() = default;
+    explicit VectorOutputStream() {
+        printf("Max size of vector<byte> in VectorOS: %lu\n", vec.max_size());
+    };
 
     void Write(byte value) override {
         vec.push_back(value);
@@ -120,7 +129,11 @@ public:
         counter(nullptr),
         unused_bits(0),
         bit_input(_stream_in),
-        bit_output(_stream_out) {}
+        bit_output(_stream_out)
+    {
+        printf("Max size of vector<shared_ptr TreeNode> in Huffman: %lu\n", rate_table.max_size());
+        printf("Max size of vector<shared_ptr TreeNode> in Huffman: %lu\n", backup_rate_table.max_size());
+    }
     ~Huffman() {
         delete(counter);
     }
@@ -312,7 +325,7 @@ public:
 
 private:
     std::map<byte, std::vector<bool> > new_codes;
-    int8_t amount_of_symbols;
+    byte amount_of_symbols;
     int8_t unused_bits;
     std::vector<std::shared_ptr<TreeNode> > rate_table;
     std::vector<std::shared_ptr<TreeNode> > backup_rate_table;
@@ -344,7 +357,6 @@ void Decode(IInputStream& compressed, IOutputStream& original) {
 
     hf.Decode();
 }
-
 
 
 int main() {

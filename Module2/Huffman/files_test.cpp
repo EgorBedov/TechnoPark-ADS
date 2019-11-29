@@ -6,15 +6,23 @@
 
 #include "Huffman.h"
 
+/*
 #define ORIGINAL_FILE "files/original_file"
 #define COMPRESSED_FILE "files/compressed_file"
 #define DECOMPRESSED_FILE "files/decompressed_file"
+*/
+
+#define ORIGINAL_FILE "files/WaP/original"
+#define COMPRESSED_FILE "files/WaP/compressed"
+#define DECOMPRESSED_FILE "files/WaP/decompressed"
 
 int main() {
     /// Check for files existence
     if ( (access(ORIGINAL_FILE, R_OK) & access(COMPRESSED_FILE, R_OK) & access(DECOMPRESSED_FILE, R_OK)) == -1 ) {
         fprintf(stderr, "Failed to open files!\n");
         return EXIT_FAILURE;
+    } else {
+        printf("Files are accessible\n");
     }
 
     ////////////////////////////////////////////////////////////

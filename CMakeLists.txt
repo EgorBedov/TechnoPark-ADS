@@ -26,4 +26,3 @@ add_executable(ContestHuffman
         Module2/Huffman/Contest/files_test.cpp
 #        Module2/Huffman/Contest/ContestHuffman.cpp
         Module2/Huffman/Contest/Huffman.h)
-

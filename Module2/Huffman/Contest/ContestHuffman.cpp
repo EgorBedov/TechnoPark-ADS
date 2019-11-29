@@ -12,7 +12,9 @@ typedef unsigned char byte;
 
 class VectorInputStream : public IInputStream {
 public:
-    explicit VectorInputStream() : pos(0) {}
+    explicit VectorInputStream() : pos(0) {
+        printf("Max size of vector<byte> in VectorIS: %lu\n", vec.max_size());
+    }
 
     bool Read(byte& value) override {
         if (pos < vec.size()) {
@@ -31,7 +33,9 @@ public:
 
 class VectorOutputStream : public IOutputStream {
 public:
-    explicit VectorOutputStream() = default;
+    explicit VectorOutputStream() {
+        printf("Max size of vector<byte> in VectorOS: %lu\n", vec.max_size());
+    };
 
     void Write(byte value) override {
         vec.push_back(value);
@@ -110,7 +114,11 @@ public:
         counter(nullptr),
         unused_bits(0),
         bit_input(_stream_in),
-        bit_output(_stream_out) {}
+        bit_output(_stream_out)
+    {
+        printf("Max size of vector<shared_ptr TreeNode> in Huffman: %lu\n", rate_table.max_size());
+        printf("Max size of vector<shared_ptr TreeNode> in Huffman: %lu\n", backup_rate_table.max_size());
+    }
     ~Huffman() {
         delete(counter);
     }
@@ -217,7 +225,7 @@ public:
             BuildTable(node->right);
         }
         if ( !(node->left) && !(node->right) ) {
-            new_codes.insert(std::pair<byte, std::vector<bool> >(node->letter, std::vector<bool>(code)));
+            new_codes.emplace(node->letter, std::vector<bool>(code));
         }
         if ( !code.empty() )
             code.pop_back();
@@ -302,7 +310,7 @@ public:
 
 private:
     std::map<byte, std::vector<bool> > new_codes;
-    int8_t amount_of_symbols;
+    byte amount_of_symbols;
     int8_t unused_bits;
     std::vector<std::shared_ptr<TreeNode> > rate_table;
     std::vector<std::shared_ptr<TreeNode> > backup_rate_table;
