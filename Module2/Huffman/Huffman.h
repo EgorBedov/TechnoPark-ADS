@@ -12,7 +12,7 @@
 #include <limits>
 #include <memory>
 
-#define ASCII_LENGTH 128
+#define ASCII_LENGTH 256
 typedef unsigned char byte;
 
 class Huffman;  // friend of BitInput/BitOutput
@@ -73,8 +73,8 @@ public:
         return true;
     }
 
-    char read_byte() {
-        char letter;
+    byte read_byte() {
+        byte letter = 0;
         byte bit;
         for (size_t iii = 0; iii < 8; ++iii) {
             read_bit(bit);
@@ -101,8 +101,7 @@ public:
         if ( bit_count == 8 )
             flush();
     }
-
-    void write_char(char letter) {
+    void write_char(byte letter) {
         byte bit;
         for ( int iii = CHAR_BIT - 1; iii >= 0; --iii ) {
             bit = ( (letter & (1 << iii)) ? '1' : '0' ); // TODO: not sure here
@@ -136,12 +135,12 @@ public:
         delete(counter);
     }
     struct TreeNode {
-        char letter;
+        byte letter;
         int frequency;
         std::shared_ptr<TreeNode> left;
         std::shared_ptr<TreeNode> right;
 
-        explicit TreeNode(char _letter,
+        explicit TreeNode(byte _letter,
                           int _frequency = 0,
                           std::shared_ptr<TreeNode> _left = nullptr,
                           std::shared_ptr<TreeNode> _right = nullptr)
@@ -181,13 +180,11 @@ public:
         /// Посчитаем кол-во и частоту символов
         counter = new size_t[ASCII_LENGTH]();
         byte value;
-        int8_t code = 0;
         while ( bit_input.stream.Read(value) ) {
-            code = static_cast<int8_t>(value);  // Переводим в ASCII-code
-            if ( counter[code] == 0 ) {         // Проверяем наличие этой буквы в таблице
+            if ( counter[value] == 0 ) {         // Проверяем наличие этой буквы в таблице
                 amount_of_symbols++;            // Если новая буква - увеличиваем счетчик
             }
-            counter[code]++;                    // Увеличиваем счётчик частоты буквы
+            counter[value]++;                    // Увеличиваем счётчик частоты буквы
         }
         printf("\n");
 
@@ -196,7 +193,7 @@ public:
         for ( size_t iii = 0; iii < ASCII_LENGTH; iii++ ) {
             if ( counter[iii] != 0 ) {
                 rate_table.push_back(std::make_shared<TreeNode>(
-                        char(iii),
+                        iii,
                         counter[iii],
                         nullptr,
                         nullptr));
@@ -222,7 +219,7 @@ public:
 
         puts("Таблица частот");
         for ( auto & iii : rate_table ) {
-            printf("%c\t\t", iii->letter);
+            printf("%hhu\t\t", iii->letter);
         }
         printf("\n");
         for ( auto & iii : rate_table ) {
@@ -232,7 +229,7 @@ public:
 
         for ( size_t iii = rate_table.size() - 1; rate_table.size() != 1; --iii ) { // Итерируем с конца
             auto temp_node = std::make_shared<TreeNode>(     // Соединяем два последних элемента в один
-                    -1,                                 // Новый узел не несёт в себе никакой буквы
+                    0,                                 // Новый узел не несёт в себе никакой буквы
                     rate_table[iii]->frequency + rate_table[iii - 1]->frequency,
                     rate_table[iii],                    // Левый ребёнок
                     rate_table[iii - 1]);               // Правый ребёнок
@@ -264,7 +261,7 @@ public:
             BuildTable(node->right);
         }
         if ( !(node->left) && !(node->right) ) {
-            new_codes.insert(std::pair<char, std::vector<bool> >(node->letter, std::vector<bool>(code)));
+            new_codes.insert(std::pair<byte, std::vector<bool> >(node->letter, std::vector<bool>(code)));
         }
         if ( !code.empty() )
             code.pop_back();
@@ -306,7 +303,7 @@ public:
             EncodeTree(node->right);
         } else {
             bit_output.write_bit(1);
-            printf("1%c", node->letter);
+            printf("1%hhu", node->letter);
             bit_output.write_char(node->letter);
         }
     }
@@ -362,16 +359,16 @@ public:
         if ( int(bit) == 0 ) {
             auto left_child = DecodeTree();
             auto right_child = DecodeTree();
-            return std::make_shared<TreeNode>(-1, 0, left_child, right_child);
+            return std::make_shared<TreeNode>(0, 0, left_child, right_child);
         } else {
-            char letter = bit_input.read_byte();
+            byte letter = bit_input.read_byte();
             ++amount_of_symbols;
             return std::make_shared<TreeNode>(letter, 0, nullptr, nullptr);
         }
     }
 
 private:
-    std::map<int, std::vector<bool> > new_codes;
+    std::map<byte, std::vector<bool> > new_codes;
     int8_t amount_of_symbols;
     int8_t unused_bits;
     std::vector<std::shared_ptr<TreeNode> > rate_table;

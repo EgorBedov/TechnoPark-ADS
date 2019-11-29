@@ -15,12 +15,14 @@
 #include <memory>
 #include <utility>
 
+
 #define ASCII_LENGTH 256
+#define BITS_IN_BYTE 8
 typedef unsigned char byte;
 
 class VectorInputStream : public IInputStream {
 public:
-    explicit VectorInputStream(std::vector <byte>& vec) : vec( vec ), pos(0) {}
+    explicit VectorInputStream() : pos(0) {}
 
     bool Read(byte& value) override {
         if (pos < vec.size()) {
@@ -33,19 +35,19 @@ public:
         vec.push_back(value);
     }
 
-    std::vector<byte>& vec;
+    std::vector<byte> vec;
     int pos;
 };
 
 class VectorOutputStream : public IOutputStream {
 public:
-    explicit VectorOutputStream(std::vector <byte>& vec) : vec( vec ) {};
+    explicit VectorOutputStream() = default;
 
     void Write(byte value) override {
         vec.push_back(value);
     }
 
-    std::vector<byte>& vec;
+    std::vector<byte> vec;
 };
 
 class Huffman;
@@ -55,22 +57,22 @@ public:
     explicit BitInput(VectorInputStream &_input) : stream(_input), buf(0), bit_pos(8) {}
 
     bool read_bit(byte &bit) {
-        if ( bit_pos == 8 ) {
+        if ( bit_pos == BITS_IN_BYTE ) {
             bool res = stream.Read(buf);
             bit_pos = 0;
             if ( !res )
                 return false;
         }
-        bit = (buf >> (7 - (bit_pos++))) & 1;
+        bit = (buf >> (BITS_IN_BYTE - 1 - (bit_pos++))) & 1;
         return true;
     }
-    char read_byte() {
-        char letter;
+    byte read_byte() {
+        byte letter = 0;
         byte bit;
-        for (size_t iii = 0; iii < 8; ++iii) {
+        for (size_t iii = 0; iii < BITS_IN_BYTE; ++iii) {
             read_bit(bit);
             if ( bit == 1 ) {
-                letter |= 1 << (7 - iii);
+                letter |= 1 << (BITS_IN_BYTE - 1 - iii);
             }
         }
         return letter;
@@ -88,13 +90,13 @@ public:
     explicit BitOutput(IOutputStream& _stream) : stream(_stream), buf(0), bit_count(0) {}
 
     void write_bit(byte bit) {
-        buf |= (bit & 1) << (7 - (bit_count++));
-        if ( bit_count == 8 )
+        buf |= (bit & 1) << (BITS_IN_BYTE - 1 - (bit_count++));
+        if ( bit_count == BITS_IN_BYTE )
             flush();
     }
-    void write_char(char letter) {
+    void write_char(byte letter) {
         byte bit;
-        for ( int iii = 7; iii >= 0; --iii ) {
+        for ( int iii = BITS_IN_BYTE - 1; iii >= 0; --iii ) {
             bit = ( (letter & (1 << iii)) ? '1' : '0' ); // TODO: not sure here
             write_bit(bit);
         }
@@ -123,12 +125,12 @@ public:
         delete(counter);
     }
     struct TreeNode {
-        char letter;
+        byte letter;
         int frequency;
         std::shared_ptr<TreeNode> left;
         std::shared_ptr<TreeNode> right;
 
-        explicit TreeNode(char _letter,
+        explicit TreeNode(byte _letter,
                           int _frequency = 0,
                           std::shared_ptr<TreeNode> _left = nullptr,
                           std::shared_ptr<TreeNode> _right = nullptr)
@@ -159,21 +161,19 @@ public:
         /// Посчитаем кол-во и частоту символов
         counter = new size_t[ASCII_LENGTH]();
         byte value;
-        int8_t code = 0;
         while ( bit_input.stream.Read(value) ) {
-            code = static_cast<int8_t>(value);  // Переводим в ASCII-code
-            if ( counter[code] == 0 ) {         // Проверяем наличие этой буквы в таблице
+            if ( counter[value] == 0 ) {        // Проверяем наличие этой буквы в таблице
                 amount_of_symbols++;            // Если новая буква - увеличиваем счетчик
             }
-            counter[code]++;                    // Увеличиваем счётчик частоты буквы
+            counter[value]++;                   // Увеличиваем счётчик частоты буквы
         }
 
         /// Создадим таблицу частот из нод дерева
-        rate_table.reserve(amount_of_symbols);      // I wanted to use std::array tho
+//        rate_table.reserve(amount_of_symbols);      // I wanted to use std::array tho
         for ( size_t iii = 0; iii < ASCII_LENGTH; iii++ ) {
             if ( counter[iii] != 0 ) {
                 rate_table.push_back(std::make_shared<TreeNode>(
-                        char(iii),
+                        iii,
                         counter[iii],
                         nullptr,
                         nullptr));
@@ -196,7 +196,7 @@ public:
 
         for ( size_t iii = rate_table.size() - 1; rate_table.size() != 1; --iii ) { // Итерируем с конца
             auto temp_node = std::make_shared<TreeNode>(     // Соединяем два последних элемента в один
-                    -1,                                 // Новый узел не несёт в себе никакой буквы
+                    0,                                  // Новый узел не несёт в себе никакой буквы
                     rate_table[iii]->frequency + rate_table[iii - 1]->frequency,
                     rate_table[iii],                    // Левый ребёнок
                     rate_table[iii - 1]);               // Правый ребёнок
@@ -227,20 +227,20 @@ public:
             BuildTable(node->right);
         }
         if ( !(node->left) && !(node->right) ) {
-            new_codes.insert(std::pair<char, std::vector<bool> >(node->letter, std::vector<bool>(code)));
+            new_codes.insert(std::pair<byte, std::vector<bool> >(node->letter, std::vector<bool>(code)));
         }
         if ( !code.empty() )
             code.pop_back();
     }
     int8_t CountUnusedBits() {
         int8_t bits;
-        // Each letter carries itself (8 bits) and zero-bit (1 bit)
-        // Empty nodes are represented by ( letters - 1 )
-        int16_t tree_bits = amount_of_symbols * ( 8 + 1 ) + ( amount_of_symbols - 1 );
+        // Each letter carries itself (8 bits) and one-bit (1 bit)
+        // Empty nodes are represented by ( amount_of_symbols - 1 )
+        size_t tree_bits = amount_of_symbols * ( BITS_IN_BYTE + 1 ) + ( amount_of_symbols - 1 );
 
         // To count length of payload we need to
         // multiply frequency of each letter by bit-length of its new code
-        int64_t payload_bits = 0;
+        uint64_t payload_bits = 0;
         for ( size_t iii = 0; iii < amount_of_symbols; ++iii ) {
             payload_bits += (
                     backup_rate_table[iii]->frequency
@@ -248,7 +248,7 @@ public:
                     new_codes[backup_rate_table[iii]->letter].size() );
         }
 
-        bits = 8 - ( tree_bits + payload_bits ) % 8;
+        bits = BITS_IN_BYTE - ( tree_bits + payload_bits ) % BITS_IN_BYTE;
         /// Запишем кол-во неиспользованных бит
         bit_output.stream.Write(bits);
 
@@ -284,8 +284,8 @@ public:
         auto tmp = root;            // Скопировали корень
 
         /// Decode message
-        int16_t tree_bits = amount_of_symbols * ( 8 + 1 ) + ( amount_of_symbols - 1 );
-        for ( size_t iii = 8 + tree_bits; iii < bit_input.stream.vec.size() * 8 - unused_bits; ++iii ) {
+        int16_t tree_bits = amount_of_symbols * ( BITS_IN_BYTE + 1 ) + ( amount_of_symbols - 1 );
+        for ( size_t iii = BITS_IN_BYTE + tree_bits; iii < bit_input.stream.vec.size() * BITS_IN_BYTE - unused_bits; ++iii ) {
             if ( !bit_input.read_bit(bit) )
                 break;  // something happens at the end
 
@@ -302,16 +302,16 @@ public:
         if ( int(bit) == 0 ) {
             auto left_child = DecodeTree();
             auto right_child = DecodeTree();
-            return std::make_shared<TreeNode>(-1, 0, left_child, right_child);
+            return std::make_shared<TreeNode>(0, 0, left_child, right_child);
         } else {
-            char letter = bit_input.read_byte();
+            byte letter = bit_input.read_byte();
             ++amount_of_symbols;
             return std::make_shared<TreeNode>(letter, 0, nullptr, nullptr);
         }
     }
 
 private:
-    std::map<int, std::vector<bool> > new_codes;
+    std::map<byte, std::vector<bool> > new_codes;
     int8_t amount_of_symbols;
     int8_t unused_bits;
     std::vector<std::shared_ptr<TreeNode> > rate_table;
@@ -329,8 +329,7 @@ static void copyStream(IInputStream &input, VectorInputStream &output) {
 }
 
 void Encode(IInputStream &original, IOutputStream &compressed) {
-    std::vector<byte> vec;
-    VectorInputStream original_vector( vec );
+    VectorInputStream original_vector;
     copyStream(original, original_vector);
 
     Huffman hf(original_vector, compressed);
@@ -338,8 +337,7 @@ void Encode(IInputStream &original, IOutputStream &compressed) {
 }
 
 void Decode(IInputStream& compressed, IOutputStream& original) {
-    std::vector<byte> vec;
-    VectorInputStream compressed_vector( vec );
+    VectorInputStream compressed_vector;
     copyStream(compressed, compressed_vector);
 
     Huffman hf(compressed_vector, original);
@@ -362,8 +360,7 @@ int main() {
 
     std::ifstream inf;
     inf.open(ORIGINAL_FILE, std::ifstream::out);
-    std::vector <byte> vec_in;
-    VectorOutputStream temp_vec_output( vec_in );
+    VectorOutputStream temp_vec_output;
 
     /// Read char by char into vector
     char temp_char;
@@ -377,11 +374,9 @@ int main() {
     /// Do main work
     // vec_input пустой, а нам необходимо из него читать
     // поэтому просто поменяю местами вектора
-    std::vector <byte> vec_out;
-    VectorInputStream vec_input( vec_out );
+    VectorInputStream vec_input;
     vec_input.vec = temp_vec_output.vec;    // копируем original в новый вектор
-    std::vector <byte> temp_vec_out;
-    VectorOutputStream vec_output(temp_vec_out);          // пустой вектор для записи compressed
+    VectorOutputStream vec_output;          // пустой вектор для записи compressed
     printf("---ENCODING---\n");
     Encode(vec_input, vec_output);
 
@@ -391,8 +386,7 @@ int main() {
 
     // опять же, необходимо прочитать из vec_output,
     // у которого нет Read, поэтому снова меняем их местами
-    std::vector <byte> temp_vec_in;
-    VectorInputStream temp_vec_input(temp_vec_in);
+    VectorInputStream temp_vec_input;
     temp_vec_input.vec = vec_output.vec;        // копируем compressed в новый вектор
     while ( temp_vec_input.Read(temp_byte) ) {
         outf << temp_byte;
