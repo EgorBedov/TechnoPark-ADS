@@ -23,6 +23,9 @@ add_executable(Huffman
         Module2/Huffman/Huffman.cpp
         Module2/Huffman/Huffman.h)
 
+add_executable(Graph_Seminar
+        Seminars/graphs.cpp)
+
 #add_executable(ContestHuffman
 #        Module2/Huffman/Contest/files_test.cpp
 ##        Module2/Huffman/Contest/ContestHuffman.cpp
