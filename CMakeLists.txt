@@ -23,6 +23,21 @@ add_executable(Huffman
         Module2/Huffman/Huffman.cpp
         Module2/Huffman/Huffman.h)
 
+add_executable(Graph_Implementations
+        Module3/Graph/test.cpp
+        Module3/Graph/IGraph.h
+        Module3/Graph/ArcGraph.cpp
+        Module3/Graph/ArcGraph.h
+        Module3/Graph/ListGraph.cpp
+        Module3/Graph/ListGraph.h
+        Module3/Graph/MatrixGraph.cpp
+        Module3/Graph/MatrixGraph.h
+        Module3/Graph/SetGraph.cpp
+        Module3/Graph/SetGraph.h)
+
+add_executable(ShortestPaths
+        Module3/ShortestPaths.cpp)
+
 add_executable(Graph_Seminar
         Seminars/graphs.cpp)
 
