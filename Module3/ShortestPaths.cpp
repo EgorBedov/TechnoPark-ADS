@@ -6,49 +6,41 @@
 #include <vector>
 
 /// Матрица смежности
-class MatrixGraph {
+class ListGraph {
 public:
-    explicit MatrixGraph(size_t _vertices)
-      : matrix_(std::vector<std::vector<bool> >(_vertices)),
-        amount_of_vertices_(_vertices)
-      {
-        for (auto &iii : matrix_) {
-            iii = std::vector<bool>(_vertices, false);
-        }
+    explicit ListGraph(size_t _size) : amount_of_vertices_(_size) {
+        list_.resize(_size);
     }
 
     void AddEdge(int from, int to) {
-        if ( from > matrix_.size() || to > matrix_.size() ) {
-            int max = from > to ? from : to;
-            matrix_.reserve( max );
-            for ( auto & row : matrix_ ) {
-                row.reserve( max );
-            }
+        if ( from > list_.size() || to > list_.size() ) {
+            list_.reserve( from > to ? from : to );
         }
-        matrix_[from][to] = true;
-        matrix_[to][from] = true;
+        list_[from].push_back(to);
+        list_[to].push_back(from);
     }
 
     size_t CountShortestPaths(int from, int to) {
-        std::queue<int> q;
-        q.push(from);
+        std::queue<int> layer;
+        layer.push(from);
 
-        std::vector<int> neighbours;
         std::vector<bool> visited(amount_of_vertices_, false);
-        while ( !q.empty() ) {  // цикл итерации по всем элементам
-            size_t entries = 0;
-            size_t layer_width = q.size();
-            for ( size_t iii = 0; iii < layer_width; ++iii ) { // цикл итерации по слою
-                int current = q.front();
+        size_t entries = 0;
+        while ( !layer.empty() ) {  // Итерация по всем элементам
+            entries = 0;
+            size_t layer_breadth = layer.size();
+            for ( size_t iii = 0; iii < layer_breadth; ++iii ) { // цикл итерации по слою
+                int current = layer.front();
+                layer.pop();
                 visited[current] = true;
-                neighbours = GetNextVertices(current);
-                q.pop();
-                for ( const auto & tmp: neighbours ) {
-                    if ( !visited[tmp] ) {
-                        if (tmp == to) {
+                for ( const auto & next: GetNextVertices(current) ) {
+                    if ( !visited[next] ) {
+                        if ( next == to ) {
                             ++entries;
                         }
-                        q.push(tmp);    // we don't really need to push if we found "to"
+                        if ( !entries ) {
+                            layer.push(next);
+                        }
                     }
                 }
             }
@@ -56,21 +48,14 @@ public:
                 return entries;
             }
         }
+        return entries;
     }
 
     std::vector<int> GetNextVertices(int vertex) const {
-        auto result = std::vector<int>();
-
-        for ( size_t iii = 0; iii < matrix_[vertex].size(); ++iii ) {
-            if ( matrix_[vertex][iii] ) {
-                result.push_back(iii);
-            }
-        }
-
-        return result;
+        return list_[vertex];
     }
 private:
-    std::vector<std::vector<bool> > matrix_;
+    std::vector<std::vector<int> > list_;
     size_t amount_of_vertices_ = 0;
 };
 
@@ -78,8 +63,8 @@ void run(std::istream &input, std::ostream &output) {
     size_t vertices = 0;
     size_t edges = 0;
     input >> vertices >> edges;
-    assert((vertices & edges) > 0);
-    auto graph = MatrixGraph(vertices);
+    assert(vertices > 0);
+    auto graph = ListGraph(vertices);
 
     int from = 0;
     int to = 0;
@@ -161,6 +146,18 @@ void test_logic() {
         run(input, output);
 
         assert(output.str() == "10\n");
+    }
+    { // Условие без дорог
+        std::stringstream input;
+        std::stringstream output;
+
+        input << "10\n"
+                 "0\n"
+                 "0 0" << std::endl;
+
+        run(input, output);
+
+        assert(output.str() == "0\n");
     }
     std::cout << "OK" << std::endl;
 }

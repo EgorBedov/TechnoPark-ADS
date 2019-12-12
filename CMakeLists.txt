@@ -38,6 +38,12 @@ add_executable(Graph_Implementations
 add_executable(ShortestPaths
         Module3/ShortestPaths.cpp)
 
+add_executable(Cities
+        Module3/Cities.cpp)
+
+add_executable(SpanningTree
+        Module3/SpanningTree.cpp)
+
 add_executable(Graph_Seminar
         Seminars/graphs.cpp)
 
