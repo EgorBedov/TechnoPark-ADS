@@ -1,3 +1,4 @@
+#include <limits.h>
 #include <cassert>
 #include <cstdlib>
 #include <iostream>
@@ -13,42 +14,37 @@ public:
     }
 
     void AddEdge(int from, int to) {
-        if ( from > list_.size() || to > list_.size() ) {
-            list_.reserve( from > to ? from : to );
-        }
         list_[from].push_back(to);
         list_[to].push_back(from);
     }
 
     size_t CountShortestPaths(int from, int to) {
-        std::queue<int> layer;
-        layer.push(from);
-
         std::vector<bool> visited(amount_of_vertices_, false);
-        size_t entries = 0;
-        while ( !layer.empty() ) {  // Итерация по всем элементам
-            entries = 0;
-            size_t layer_breadth = layer.size();
-            for ( size_t iii = 0; iii < layer_breadth; ++iii ) { // цикл итерации по слою
-                int current = layer.front();
-                layer.pop();
-                visited[current] = true;
-                for ( const auto & next: GetNextVertices(current) ) {
-                    if ( !visited[next] ) {
-                        if ( next == to ) {
-                            ++entries;
-                        }
-                        if ( !entries ) {
-                            layer.push(next);
-                        }
-                    }
+        std::vector<int> distance(amount_of_vertices_, INT_MAX);
+        std::vector<int> paths(amount_of_vertices_, 0);
+        std::queue<int> q;
+        q.push(from);
+        paths[from] = 1;
+        visited[from] = true;
+
+        while ( !q.empty() ) {
+            int current = q.front(); q.pop();
+            for ( const auto & neighbour : GetNextVertices(current) ) {
+                /// Push new neighbour in queue
+                if ( !visited[neighbour] ) {
+                    q.push(neighbour);
+                    visited[neighbour] = true;
+                }
+                /// Check for better path
+                if ( distance[neighbour] > distance[current] + 1 ) {
+                    distance[neighbour] = distance[current] + 1;
+                    paths[neighbour] = paths[current];
+                } else if ( distance[neighbour] == distance[current] + 1 ) {
+                    paths[neighbour] += paths[current];
                 }
             }
-            if ( entries ) {
-                return entries;
-            }
         }
-        return entries;
+        return paths[to];
     }
 
     std::vector<int> GetNextVertices(int vertex) const {
@@ -74,7 +70,11 @@ void run(std::istream &input, std::ostream &output) {
     }
 
     input >> from >> to;
-    output << graph.CountShortestPaths(from, to) << std::endl;
+    if ( edges == 0 ) {
+        output << 0 << std::endl;
+    } else {
+        output << graph.CountShortestPaths(from, to) << std::endl;
+    }
 }
 
 void test_logic() {
