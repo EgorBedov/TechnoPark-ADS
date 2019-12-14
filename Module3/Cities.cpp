@@ -2,7 +2,7 @@
 #include <cassert>
 #include <iostream>
 #include <limits.h>
-#include <set>
+#include <map>
 #include <sstream>
 #include <vector>
 
@@ -61,20 +61,20 @@ public:
         std::vector<int> distance(amount_of_vertices, INT_MAX);
         distance[from] = 0;
 
-        std::set<Node, std::less<Node> > unvisited;
-        unvisited.emplace(from, 0);
+        // id, weight
+        std::map<int, int> unvisited;
+        unvisited.emplace(from, distance[from]);
 
         while ( !unvisited.empty() ) {
             auto current = unvisited.begin();
             unvisited.erase(unvisited.begin());
-            int id = current->id;
 
-            for ( const auto & neighbour : GetNextVertices(current->id) ) {
-                if ( distance[neighbour.id] > distance[current->id] + neighbour.weight ) {
+            for ( const auto & neighbour : GetNextVertices(current->first) ) {
+                if ( distance[neighbour.id] > distance[current->first] + neighbour.weight ) {
                     /// if we found a shorter distance we need to update it in queue
                     if ( distance[neighbour.id] != INT_MAX )
-                        unvisited.erase(Node(neighbour.id, distance[neighbour.id]));
-                    int new_distance = distance[current->id] + neighbour.weight;
+                        unvisited.erase(neighbour.id);
+                    int new_distance = distance[current->first] + neighbour.weight;
                     distance[neighbour.id] = new_distance;
                     unvisited.emplace(neighbour.id, new_distance);
                 }
