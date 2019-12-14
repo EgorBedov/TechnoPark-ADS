@@ -19,7 +19,7 @@ public:
     }
 
     size_t CountShortestPaths(int from, int to) {
-        std::vector<bool> visited(amount_of_vertices_, false);
+        std::vector<bool> visited(amount_of_vertices_, false);  // check for INT_MAX instead
         std::vector<int> distance(amount_of_vertices_, INT_MAX);
         std::vector<int> paths(amount_of_vertices_, 0);
         std::queue<int> q;
@@ -31,7 +31,7 @@ public:
             int current = q.front(); q.pop();
             for ( const auto & neighbour : GetNextVertices(current) ) {
                 /// Push new neighbour in queue
-                if ( !visited[neighbour] ) {
+                if ( distance[neighbour] != INT_MAX ) {     // TODO try
                     q.push(neighbour);
                     visited[neighbour] = true;
                 }
@@ -39,7 +39,9 @@ public:
                 if ( distance[neighbour] > distance[current] + 1 ) {
                     distance[neighbour] = distance[current] + 1;
                     paths[neighbour] = paths[current];
-                } else if ( distance[neighbour] == distance[current] + 1 ) {
+                }
+                /// Another path was found
+                else if ( distance[neighbour] == distance[current] + 1 ) {
                     paths[neighbour] += paths[current];
                 }
             }

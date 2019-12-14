@@ -44,8 +44,12 @@ add_executable(Cities
 add_executable(SpanningTree
         Module3/SpanningTree.cpp)
 
+add_executable(Komm
+        Module3/Komm.cpp)
+
 add_executable(Graph_Seminar
         Seminars/graphs.cpp)
+
 
 #add_executable(ContestHuffman
 #        Module2/Huffman/Contest/files_test.cpp

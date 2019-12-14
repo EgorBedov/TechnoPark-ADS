@@ -2,7 +2,7 @@
 #include <cassert>
 #include <iostream>
 #include <limits.h>
-#include <queue>
+#include <set>
 #include <sstream>
 #include <vector>
 
@@ -14,11 +14,11 @@ struct Node {
 
     Node(int _id, int _weight) : id(_id), weight(_weight) {};
 
-    bool operator>(const Node &r) const {
-        return weight > r.weight;
+    bool operator<(const Node &r) const {
+        return weight < r.weight;
     }
 
-    bool operator==(const Node &r) const {
+    bool operator==(const Node& r) const {
         return id == r.id;
     }
 };
@@ -31,13 +31,19 @@ public:
     }
 
     void AddEdge(int from, int to, int weight) {
-        auto it = std::find(list_[from].begin(), list_[from].end(), Node(to, weight));
+        auto it = std::find_if(
+                list_[from].begin(),
+                list_[from].end(),
+                [=](const Node& node){ return node.id == to; });
         if ( it == list_[from].end() ) {    // Если нет такого ребра
             list_[from].push_back(Node(to, weight));
             list_[to].push_back(Node(from, weight));
         } else if ( it->weight > weight ) { // Если есть такое ребро
             it.base()->weight = weight;     // list_[from][to]
-            it = std::find(list_[to].begin(), list_[to].end(), Node(from, weight));
+            it = std::find_if(
+                list_[to].begin(),
+                list_[to].end(),
+                [=](const Node& node){ return node.id == from; });
             assert( it != list_[to].end() );
             it.base()->weight = weight;     // list_[to][from]
         }
@@ -52,29 +58,25 @@ public:
     }
 
     int MeasureShortestPath(const int from, const int to) { // dijkstra algorithm
-        std::vector<bool> visited(amount_of_vertices, false);
-
         std::vector<int> distance(amount_of_vertices, INT_MAX);
         distance[from] = 0;
-        std::vector<int> prev_vertex(amount_of_vertices, -1);
 
-        std::priority_queue<Node, std::vector<Node>, std::greater<Node> > unvisited;
-        unvisited.push(Node(from, 0));
+        std::set<Node, std::less<Node> > unvisited;
+        unvisited.emplace(from, 0);
 
         while ( !unvisited.empty() ) {
-            Node current = unvisited.top(); unvisited.pop();
-            visited[current.id] = true;
+            auto current = unvisited.begin();
+            unvisited.erase(unvisited.begin());
+            int id = current->id;
 
-            for ( const auto & neighbour : GetNextVertices(current.id) ) {
-                if ( !visited[neighbour.id] ) {
-                    int new_distance = distance[current.id] + neighbour.weight;
-                    if ( new_distance < distance[neighbour.id] ) {
-                        distance[neighbour.id] = new_distance;
-                        prev_vertex[neighbour.id] = current.id;
-                    }
-                    if ( !visited[neighbour.id] ) {
-                        unvisited.push(neighbour);
-                    }
+            for ( const auto & neighbour : GetNextVertices(current->id) ) {
+                if ( distance[neighbour.id] > distance[current->id] + neighbour.weight ) {
+                    /// if we found a shorter distance we need to update it in queue
+                    if ( distance[neighbour.id] != INT_MAX )
+                        unvisited.erase(Node(neighbour.id, distance[neighbour.id]));
+                    int new_distance = distance[current->id] + neighbour.weight;
+                    distance[neighbour.id] = new_distance;
+                    unvisited.emplace(neighbour.id, new_distance);
                 }
             }
         }
@@ -106,7 +108,7 @@ void run(std::istream &input, std::ostream &output) {
 }
 
 void test_logic() {
-    { // Условие из задачи
+        { // Условие из задачи
         std::stringstream input;
         std::stringstream output;
 
@@ -125,8 +127,26 @@ void test_logic() {
 
         run(input, output);
 
+        std::cout << output.str() << std::endl;
+
         assert(output.str() == "9\n");
     }
+    { // Условие из задачи
+        std::stringstream input;
+        std::stringstream output;
+
+        input << "3\n"
+                 "3\n"
+                 "0 1 1\n"
+                 "0 2 3\n"
+                 "1 2 1\n"
+                 "0 2" << std::endl;
+
+        run(input, output);
+
+        assert(output.str() == "2\n");
+    }
+
     { // ещё одно условие
         std::stringstream input;
         std::stringstream output;
@@ -190,6 +210,7 @@ void test_logic() {
 
         assert(output.str() == "0\n");
     }
+    /*
     { // 2 условие из 5 задачи
         std::stringstream input;
         std::stringstream output;
@@ -212,6 +233,7 @@ void test_logic() {
 
         assert(output.str() == "92693\n");
     }
+    */
     { // Условие с петлей
         std::stringstream input;
         std::stringstream output;
