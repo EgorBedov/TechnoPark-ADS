@@ -1,8 +1,7 @@
 #include <algorithm>
 #include <cassert>
-#include <cstdlib>
 #include <iostream>
-#include <numeric>
+#include <limits.h>
 #include <queue>
 #include <sstream>
 #include <vector>
@@ -26,6 +25,9 @@ struct Node {
 public:
     explicit ListGraph(size_t _size) : amount_of_vertices(_size) {
         list_.resize(_size);
+        for ( size_t iii = 0; iii < amount_of_vertices; ++iii ) {
+            list_[iii].push_back(Node(iii, 0));
+        }
     }
 
     void AddEdge(int from, int to, int weight) {
@@ -51,28 +53,26 @@ public:
 
     int MeasureShortestPath(const int from, const int to) { // dijkstra algorithm
         std::vector<bool> visited(amount_of_vertices, false);
+
+        std::vector<int> distance(amount_of_vertices, INT_MAX);
+        distance[from] = 0;
+        std::vector<int> prev_vertex(amount_of_vertices, -1);
+
         std::priority_queue<Node, std::vector<Node>, std::greater<Node> > unvisited;
-
-        std::vector<int> distance(amount_of_vertices, 2147483647);  // int max
-        distance[0] = 0;
-        std::vector<int> prev_vertex(amount_of_vertices);
-
         unvisited.push(Node(from, 0));
 
         while ( !unvisited.empty() ) {
-            Node current = unvisited.top();
-            unvisited.pop();
+            Node current = unvisited.top(); unvisited.pop();
             visited[current.id] = true;
 
-            std::vector<Node> neighbours = GetNextVertices(current.id);
-            for ( const auto & neighbour : neighbours ) {
+            for ( const auto & neighbour : GetNextVertices(current.id) ) {
                 if ( !visited[neighbour.id] ) {
                     int new_distance = distance[current.id] + neighbour.weight;
-                    if (new_distance < distance[neighbour.id]) {
+                    if ( new_distance < distance[neighbour.id] ) {
                         distance[neighbour.id] = new_distance;
                         prev_vertex[neighbour.id] = current.id;
                     }
-                    if (!visited[neighbour.id]) {
+                    if ( !visited[neighbour.id] ) {
                         unvisited.push(neighbour);
                     }
                 }
@@ -185,6 +185,44 @@ void test_logic() {
         input << "10\n"
                  "0\n"
                  "0 0" << std::endl;
+
+        run(input, output);
+
+        assert(output.str() == "0\n");
+    }
+    { // 2 условие из 5 задачи
+        std::stringstream input;
+        std::stringstream output;
+
+        input << "5\n"
+                 "10\n"
+                 "3 2 3046\n"
+                 "3 4 90110\n"  // longer
+                 "4 0 57786\n"
+                 "2 1 28280\n"
+                 "3 2 18010\n"  // longer
+                 "3 4 61367\n"
+                 "3 0 18811\n"
+                 "3 1 69898\n"
+                 "2 4 72518\n"
+                 "2 0 85838\n"
+                 "4 1" << std::endl;
+
+        run(input, output);
+
+        assert(output.str() == "92693\n");
+    }
+    { // Условие с петлей
+        std::stringstream input;
+        std::stringstream output;
+
+        input << "3\n"
+                 "4\n"
+                 "0 1 1\n"
+                 "0 2 2\n"
+                 "1 2 2\n"
+                 "2 2 2"
+                 "2 2" << std::endl;
 
         run(input, output);
 

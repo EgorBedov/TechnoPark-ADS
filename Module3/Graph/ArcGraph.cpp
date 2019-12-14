@@ -1,7 +1,16 @@
 #include "ArcGraph.h"
 
-ArcGraph::ArcGraph(size_t _edges) {
-    arc_.reserve(_edges);
+ArcGraph::ArcGraph(size_t _size) {
+    arc_.reserve(_size);
+}
+
+ArcGraph::ArcGraph(const IGraph& g) : arc_(g.VerticesCount()) {
+    for ( size_t iii = 0; iii < arc_.size(); ++iii ) {
+        std::vector<int> next_vertices = g.GetNextVertices(iii);
+        for ( const auto & next : next_vertices ) {
+            AddEdge(iii, next);
+        }
+    }
 }
 
 void ArcGraph::AddEdge(int from, int to) {

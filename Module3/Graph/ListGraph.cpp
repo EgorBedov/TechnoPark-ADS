@@ -3,29 +3,26 @@
 
 #include "ListGraph.h"
 
-ListGraph::ListGraph(size_t _size) : list_(std::vector<std::vector<int> >(_size * 2)) {}
+ListGraph::ListGraph(size_t _size) {
+    list_.resize(_size);
+}
+
+ListGraph::ListGraph(const IGraph& g) : list_(g.VerticesCount()) {
+    for ( size_t iii = 0; iii < list_.size(); ++iii ) {
+        std::vector<int> next_vertices = g.GetNextVertices(iii);
+        for ( const auto & next : next_vertices ) {
+            AddEdge(iii, next);
+        }
+    }
+}
 
 void ListGraph::AddEdge(int from, int to) {
-    if ( from > list_.size() || to > list_.size() ) {
-        list_.reserve( from > to ? from : to );
-    }
     list_[from].push_back(to);
+//    list_[to].push_back(from);
 }
 
 int ListGraph::VerticesCount() const {
-    int amount = 0;
-
-    std::vector<bool> visited(list_.size(), false);
-    for ( size_t iii = 0; iii < list_.size(); ++iii ) {
-        for ( size_t jjj = 0; jjj < list_[iii].size(); ++jjj ) {
-            if ( !visited[list_[iii][jjj]] ) {
-                ++amount;
-                visited[list_[iii][jjj]] = true;
-            }
-        }
-    }
-
-    return amount;
+    return list_.size();
 }
 
 std::vector<int> ListGraph::GetNextVertices(int vertex) const {

@@ -12,6 +12,7 @@
 class SetGraph : public IGraph {
 public:
     explicit SetGraph(size_t _size);
+    explicit SetGraph(const IGraph& g);
 
     void AddEdge(int from, int to) override;
 
@@ -25,5 +26,3 @@ private:
 
 
 #endif // SETGRAPH_H
-
-// ФММ - функциональная математическая модель

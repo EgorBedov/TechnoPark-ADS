@@ -1,20 +1,23 @@
 #include "MatrixGraph.h"
 
-MatrixGraph::MatrixGraph(size_t _edges) : matrix_(std::vector<std::vector<bool> >(_edges * 2)) {
+MatrixGraph::MatrixGraph(size_t _size) : matrix_(std::vector<std::vector<bool> >(_size)) {
     for (auto & iii : matrix_) {
-        iii = std::vector<bool> (_edges * 2, false);
+        iii = std::vector<bool> (_size, false);
+    }
+}
+
+MatrixGraph::MatrixGraph(const IGraph& g) : matrix_(g.VerticesCount()) {
+    for ( size_t iii = 0; iii < matrix_.size(); ++iii ) {
+        std::vector<int> next_vertices = g.GetNextVertices(iii);
+        for ( const auto & next : next_vertices ) {
+            AddEdge(iii, next);
+        }
     }
 }
 
 void MatrixGraph::AddEdge(int from, int to) {
-    if ( from > matrix_.size() || to > matrix_.size() ) {
-        int max = from > to ? from : to;
-        matrix_.reserve( max );
-        for ( auto & row : matrix_ ) {
-            row.reserve( max );
-        }
-    }
     matrix_[from][to] = true;
+//    matrix_[to][from] = true;
 }
 
 int MatrixGraph::VerticesCount() const {
@@ -22,7 +25,6 @@ int MatrixGraph::VerticesCount() const {
 
     std::vector<bool> visited(matrix_.size(), false);
 
-    // TODO: 0 is redundant if there are no vertices with that number
     for ( size_t iii = 0; iii < matrix_.size(); ++iii ) {
         for ( size_t jjj = 0; jjj < matrix_[iii].size(); ++jjj ) {
             if ( matrix_[iii][jjj] ) {

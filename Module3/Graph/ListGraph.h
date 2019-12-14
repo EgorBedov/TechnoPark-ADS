@@ -11,6 +11,7 @@
 class ListGraph : public IGraph {
 public:
     explicit ListGraph(size_t _size);
+    explicit ListGraph(const IGraph& g);
 
     void AddEdge(int from, int to) override;
 

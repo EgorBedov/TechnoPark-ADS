@@ -10,7 +10,8 @@
 /// Массив пар {from, to}
 class ArcGraph : public IGraph {
 public:
-    explicit ArcGraph(size_t _edges);
+    explicit ArcGraph(size_t _size);
+    explicit ArcGraph(const IGraph& g);
 
     void AddEdge(int from, int to) override;
 

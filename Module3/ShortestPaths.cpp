@@ -6,7 +6,7 @@
 #include <sstream>
 #include <vector>
 
-/// Матрица смежности
+/// Списки смежности
 class ListGraph {
 public:
     explicit ListGraph(size_t _size) : amount_of_vertices_(_size) {

@@ -6,6 +6,15 @@ SetGraph::SetGraph(size_t _size) {
     map_.reserve(_size);
 }
 
+SetGraph::SetGraph(const IGraph& g) : map_(g.VerticesCount()) {
+    for ( size_t iii = 0; iii < map_.size(); ++iii ) {
+        std::vector<int> next_vertices = g.GetNextVertices(iii);
+        for ( const auto & next : next_vertices ) {
+            AddEdge(iii, next);
+        }
+    }
+}
+
 void SetGraph::AddEdge(int from, int to) {
     auto it = map_.find(from);
     if ( it == map_.end() ) {

@@ -10,7 +10,8 @@
 /// Матрица смежности
 class MatrixGraph : public IGraph {
 public:
-    explicit MatrixGraph(size_t _edges);
+    explicit MatrixGraph(size_t _size);
+    explicit MatrixGraph(const IGraph& g);
 
     void AddEdge(int from, int to) override;
 
