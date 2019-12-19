@@ -7,6 +7,7 @@
 #include <sstream>
 #include <vector>
 
+
 /// Списки смежности
 class ListGraph {
 struct Node {
