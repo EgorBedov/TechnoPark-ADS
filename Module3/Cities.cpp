@@ -1,8 +1,8 @@
 #include <algorithm>
 #include <cassert>
+#include <climits>
 #include <iostream>
-#include <limits.h>
-#include <map>
+#include <set>
 #include <sstream>
 #include <vector>
 
@@ -15,38 +15,18 @@ struct Node {
     Node(int _id, int _weight) : id(_id), weight(_weight) {};
 
     bool operator<(const Node &r) const {
-        return weight < r.weight;
-    }
-
-    bool operator==(const Node& r) const {
-        return id == r.id;
+        return ( weight == r.weight ? id < r.id : weight < r.weight );
     }
 };
+
+
 public:
-    explicit ListGraph(size_t _size) : amount_of_vertices(_size) {
-        list_.resize(_size);
-        for ( size_t iii = 0; iii < amount_of_vertices; ++iii ) {
-            list_[iii].push_back(Node(iii, 0));
-        }
-    }
+    explicit ListGraph(size_t _size) : amount_of_vertices(_size), list_(_size) {}
+    virtual ~ListGraph() = default;
 
     void AddEdge(int from, int to, int weight) {
-        auto it = std::find_if(
-                list_[from].begin(),
-                list_[from].end(),
-                [=](const Node& node){ return node.id == to; });
-        if ( it == list_[from].end() ) {    // Если нет такого ребра
-            list_[from].push_back(Node(to, weight));
-            list_[to].push_back(Node(from, weight));
-        } else if ( it->weight > weight ) { // Если есть такое ребро
-            it.base()->weight = weight;     // list_[from][to]
-            it = std::find_if(
-                list_[to].begin(),
-                list_[to].end(),
-                [=](const Node& node){ return node.id == from; });
-            assert( it != list_[to].end() );
-            it.base()->weight = weight;     // list_[to][from]
-        }
+        list_[from].push_back(Node(to, weight));
+        list_[to].push_back(Node(from, weight));
     }
 
     int VerticesCount() const {
@@ -61,26 +41,23 @@ public:
         std::vector<int> distance(amount_of_vertices, INT_MAX);
         distance[from] = 0;
 
-        // id, weight
-        std::map<int, int> unvisited;
-        unvisited.emplace(from, distance[from]);
+        std::set<Node> q;
+        q.emplace(from, 0);
 
-        while ( !unvisited.empty() ) {
-            auto current = unvisited.begin();
-            unvisited.erase(unvisited.begin());
+        while ( !q.empty() ) {
+            auto current = q.begin()->id; q.erase(q.begin());
 
-            for ( const auto & neighbour : GetNextVertices(current->first) ) {
-                if ( distance[neighbour.id] > distance[current->first] + neighbour.weight ) {
-                    /// if we found a shorter distance we need to update it in queue
-                    if ( distance[neighbour.id] != INT_MAX )
-                        unvisited.erase(neighbour.id);
-                    int new_distance = distance[current->first] + neighbour.weight;
-                    distance[neighbour.id] = new_distance;
-                    unvisited.emplace(neighbour.id, new_distance);
+            for ( const auto& neigh: GetNextVertices(current) ) {
+                if ( distance[neigh.id] == INT_MAX ) {
+                    distance[neigh.id] = distance[current] + neigh.weight;
+                    q.emplace(neigh.id, distance[neigh.id]);
+                } else if ( distance[neigh.id] > distance[current] + neigh.weight ) {
+                    q.erase(Node(neigh.id, distance[neigh.id]));
+                    distance[neigh.id] = distance[current] + neigh.weight;
+                    q.emplace(neigh.id, distance[neigh.id]);
                 }
             }
         }
-
         return distance[to];
     }
 private:
@@ -93,13 +70,14 @@ void run(std::istream &input, std::ostream &output) {
     size_t roads = 0;
     input >> cities >> roads;
     assert(cities > 0);
-    auto graph = ListGraph(cities);
+    ListGraph graph(cities);
 
     int from = 0;
     int to = 0;
-    int weight;
+    int weight = 0;
     for ( size_t iii = 0; iii < roads; ++iii ) {
         input >> from >> to >> weight;
+        assert(weight >= 0);
         graph.AddEdge(from, to, weight);
     }
 
@@ -108,7 +86,7 @@ void run(std::istream &input, std::ostream &output) {
 }
 
 void test_logic() {
-        { // Условие из задачи
+    { // Условие из задачи
         std::stringstream input;
         std::stringstream output;
 
@@ -126,8 +104,6 @@ void test_logic() {
                  "0 2" << std::endl;
 
         run(input, output);
-
-        std::cout << output.str() << std::endl;
 
         assert(output.str() == "9\n");
     }
@@ -191,7 +167,7 @@ void test_logic() {
 
         input << "1\n"
                  "1\n"
-                 "0 0 5"
+                 "0 0 5\n"
                  "0 0" << std::endl;
 
         run(input, output);
@@ -210,7 +186,6 @@ void test_logic() {
 
         assert(output.str() == "0\n");
     }
-    /*
     { // 2 условие из 5 задачи
         std::stringstream input;
         std::stringstream output;
@@ -233,7 +208,6 @@ void test_logic() {
 
         assert(output.str() == "92693\n");
     }
-    */
     { // Условие с петлей
         std::stringstream input;
         std::stringstream output;
@@ -243,12 +217,40 @@ void test_logic() {
                  "0 1 1\n"
                  "0 2 2\n"
                  "1 2 2\n"
-                 "2 2 2"
+                 "2 2 2\n"
                  "2 2" << std::endl;
 
         run(input, output);
 
         assert(output.str() == "0\n");
+    }
+    { // Странное условие
+        std::stringstream input;
+        std::stringstream output;
+
+        input << "5\n"
+                 "17\n"
+                 "0 1 1\n"
+                 "0 2 100000\n"
+                 "0 3 100500\n"
+                 "0 4 5\n"
+                 "1 2 1\n"
+                 "2 3 1\n"
+                 "3 4 1\n"
+                 "1 2 2\n"
+                 "1 2 2\n"
+                 "1 2 3\n"
+                 "2 3 3\n"
+                 "2 3 3\n"
+                 "3 2 3\n"
+                 "4 4 1000\n"
+                 "0 0 100\n"
+                 "0 0 100\n"
+                 "0 4" << std::endl;
+
+        run(input, output);
+
+        assert(output.str() == "4\n");
     }
     std::cout << "OK" << std::endl;
 }
