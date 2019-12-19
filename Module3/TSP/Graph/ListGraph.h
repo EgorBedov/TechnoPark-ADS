@@ -2,13 +2,13 @@
 #define HW_LISTGRAPH_H
 
 
+#include <cfloat>  // for DBL_MAX
 #include <cmath>
-#include <unordered_map>
 #include <numeric>
 #include <queue>
 #include <stack>
 #include <vector>
-#include <cfloat>  // for DBL_MAX
+#include <unordered_map>
 
 
 struct Vertex {
@@ -66,6 +66,11 @@ public:
 
 private:
     void DFS_(const Vertex& current, std::vector<bool>& visited, std::vector<double>& distance, double& result_out) const;
+    void Hamilton(size_t current,
+                  const std::vector<size_t>& prev_vertex,
+                  const std::vector<double>& distance,
+                  std::vector<size_t>& trip_out,
+                  size_t counter = 1);
 
     std::unordered_map<Vertex, std::vector<Vertex>, Vertex::Hasher> map_;
     size_t amount_;

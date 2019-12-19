@@ -58,11 +58,32 @@ double ListGraph::SpanningTree() {
         }
     }
 
-    assert(source.id == map_.at(current)[0].id);
+    /// Hamilton trip
+    std::vector<size_t> Hamilton_trip(1, source.id);
+    Hamilton(source.id, prev_vertex, distance, Hamilton_trip);
+    assert(Hamilton_trip.size() == amount_);
+    Hamilton_trip.push_back(source.id);
 
-    return std::accumulate(distance.begin(),
-                                 distance.end(),
-                                 map_.at(current)[0].length);
+    double trip = 0.0;
+    for ( size_t iii = 0; iii < Hamilton_trip.size() - 1; ++iii ) {
+        auto curr = Hamilton_trip[iii];
+        auto next = Hamilton_trip[iii + 1];
+        trip += map_.at(Vertex(curr))[amount_ - 1 - next].length;
+    }
+    return trip;
+}
+
+void ListGraph::Hamilton(size_t current,
+                  const std::vector<size_t>& prev_vertex,
+                  const std::vector<double>& distance,
+                  std::vector<size_t>& trip_out,
+                  size_t counter) {
+    for ( size_t iii = 0; iii < amount_ - 1 && counter != amount_; ++iii ) {
+        if ( prev_vertex[iii] == current ) {
+            trip_out.push_back(iii);
+            Hamilton(iii, prev_vertex, distance, trip_out, ++counter);
+        }
+    }
 }
 
 double ListGraph::EnumerateTrip() {

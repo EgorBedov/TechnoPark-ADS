@@ -58,6 +58,22 @@ TEST(ListGraph, Distances) {
     EXPECT_DOUBLE_EQ(10.0, graph.EnumerateTrip());
 }
 
+TEST(ListGraph, Square) {
+    size_t N = 4;
+    Calculator calc(N);
+    ListGraph graph(N);
+
+    graph.AddVertex({0, 5.0, 5.0});
+    graph.AddVertex({1, -5.0, 5.0});
+    graph.AddVertex({2, -5.0, -5.0});
+    graph.AddVertex({3, 5.0, -5.0});
+
+    graph.ConnectAll();
+
+    EXPECT_LE(40.0, graph.SpanningTree());
+    EXPECT_DOUBLE_EQ(40.0, graph.EnumerateTrip());
+}
+
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

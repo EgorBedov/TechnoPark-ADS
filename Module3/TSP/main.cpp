@@ -60,5 +60,7 @@ int main() {
     return 0;
 }
 
+// TODO: replace unordered_map with vector thus fixing reversed order in adjacent lists
+//       indices in vector are indices of Vertices, first element in their vector is themselves
 // TODO: Add IGraph and switch when necessary to MatrixGraph
 // TODO: Add visualization
